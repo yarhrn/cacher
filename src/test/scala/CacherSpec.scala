@@ -26,14 +26,37 @@ class CacherSpec extends FlatSpec {
     assert(calls.tail.head == id)
 
 
+  }
+
+  it should "retry 10 times" in new ctx {
+    val key = UUID.randomUUID().toString
+    val someException = new RuntimeException("some ex")
+    override def exception = {
+      Some(someException)
+    }
+
+    val start = System.currentTimeMillis()
+
+    assertThrows[Throwable] {
+      cacher.get(key).runn
+    }
+
+    assert((System.currentTimeMillis() - start) / 1000 == 30)
+    assert(calls == List.fill(5)(key))
+
 
   }
 
   trait ctx {
     var calls = List.empty[String]
+    def exception: Option[RuntimeException] = None
     val runtime: DefaultRuntime = new DefaultRuntime {}
     val cacher: Cacher[Clock, Throwable, String, String] = Cacher.build((key: String) => ZIO {
       calls = calls :+ key
+      val ex = exception
+      if (exception.isDefined) {
+        throw ex.get
+      }
       key
     }, Duration(1, TimeUnit.SECONDS)).runn
 
