@@ -63,7 +63,6 @@ object Cacher {
           } yield value
         }
 
-        val schedule = ZSchedule.exponential(Duration(1, TimeUnit.SECONDS)) && ZSchedule.recurs(4)
 
         def resolve(key: K, promise: Promise[E, V]) = {
           val enrichJob: ZIO[R, E, V] = (for {
@@ -72,7 +71,7 @@ object Cacher {
             _ <- cache.modify(map => ((), map + (key -> Resolved(value, time + expiration.toMillis))))
           } yield value).retry(ZSchedule.exponential(Duration(1, TimeUnit.SECONDS)) && ZSchedule.recurs(4))
 
-          enrichJob.foldM(promise.fail, promise.succeed).fork *> promise.await
+          enrichJob.foldM(e => cache.modify(m => ((), m - key)) *> promise.fail(e), promise.succeed).fork *> promise.await
         }
       }
     }
