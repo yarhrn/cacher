@@ -1,5 +1,5 @@
 # cacher
-*This is project is in development phase.*
+*This project is in development phase.*
 
 This project aims add an ability to cache response from third-party service in order to not hit rate limit.
 
